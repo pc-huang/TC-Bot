@@ -145,7 +145,7 @@ class RuleSimulator(UserSimulator):
                     
         intent_err_sample = random.random()
         if intent_err_sample < self.intent_err_probability: # add noise for intent level
-            user_action['diaact'] = random.choice(self.act_set.keys())
+            user_action['diaact'] = random.choice(list(self.act_set.keys()))
     
     def debug_falk_goal(self):
         """ Debug function: build a fake goal mannually (Can be moved in future) """
