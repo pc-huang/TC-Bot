@@ -3,7 +3,8 @@ Created on May 18, 2016
 
 @author: xiul, t-zalipt
 """
-
+import sys
+sys.getdefaultencoding()  
 import copy
 from collections import defaultdict
 from deep_dialog import dialog_config
@@ -32,24 +33,24 @@ class KBHelper:
         
         kb_results = self.available_results_from_kb(current_slots)
         if dialog_config.auto_suggest == 1:
-            print 'Number of movies in KB satisfying current constraints: ', len(kb_results)
+            print ('Number of course in KB satisfying current constraints: ', len(kb_results))
 
         filled_in_slots = {}
         if 'taskcomplete' in inform_slots_to_be_filled.keys():
             filled_in_slots.update(current_slots['inform_slots'])
         
         for slot in inform_slots_to_be_filled.keys():
+            """
             if slot == 'numberofpeople':
                 if slot in current_slots['inform_slots'].keys():
                     filled_in_slots[slot] = current_slots['inform_slots'][slot]
                 elif slot in inform_slots_to_be_filled.keys():
                     filled_in_slots[slot] = inform_slots_to_be_filled[slot]
                 continue
-
-            if slot == 'ticket' or slot == 'taskcomplete':
+            """
+            if slot == 'taskcomplete':
                 filled_in_slots[slot] = dialog_config.TICKET_AVAILABLE if len(kb_results)>0 else dialog_config.NO_VALUE_MATCH
-                continue
-            
+                continue    
             if slot == 'closing': continue
 
             ####################################################################
@@ -79,15 +80,13 @@ class KBHelper:
         return slot_values
 
     def available_results_from_kb(self, current_slots):
-        """ Return the available movies in the movie_kb based on the current constraints """
+        """ Return the available courses in the course_kb based on the current constraints """
         
         ret_result = []
         current_slots = current_slots['inform_slots']
         constrain_keys = current_slots.keys()
 
-        constrain_keys = filter(lambda k : k != 'ticket' and \
-                                           k != 'numberofpeople' and \
-                                           k!= 'taskcomplete' and \
+        constrain_keys = filter(lambda k : k != 'taskcomplete' and \
                                            k != 'closing' , constrain_keys)
         constrain_keys = [k for k in constrain_keys if current_slots[k] != dialog_config.I_DO_NOT_CARE]
 
@@ -100,14 +99,15 @@ class KBHelper:
         elif cached_kb_length == -1:
             return dict([])
 
-        # kb_results = copy.deepcopy(self.movie_dictionary)
+        # kb_results = copy.deepcopy(self.course_dictionary)
         for id in self.movie_dictionary.keys():
             kb_keys = self.movie_dictionary[id].keys()
             if len(set(constrain_keys).union(set(kb_keys)) ^ (set(constrain_keys) ^ set(kb_keys))) == len(
                     constrain_keys):
                 match = True
                 for idx, k in enumerate(constrain_keys):
-                    if str(current_slots[k]).lower() == str(self.movie_dictionary[id][k]).lower():
+                    # lower???
+                    if current_slots[k] == self.movie_dictionary[id][k]:
                         continue
                     else:
                         match = False

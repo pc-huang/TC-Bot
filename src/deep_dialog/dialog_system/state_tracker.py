@@ -14,7 +14,7 @@ import copy
 class StateTracker:
     """ The state tracker maintains a record of which request slots are filled and which inform slots are filled """
 
-    def __init__(self, act_set, slot_set, movie_dictionary):
+    def __init__(self, act_set, slot_set, course_dictionary):
         """ constructor for statetracker takes movie knowledge base and initializes a new episode
 
         Arguments:
@@ -30,7 +30,7 @@ class StateTracker:
         kb_result_dimension     --  A single integer denoting the dimension of the kb_results features.
         turn_count              --  A running count of which turn we are at in the present dialog
         """
-        self.movie_dictionary = movie_dictionary
+        self.course_dictionary = course_dictionary
         self.initialize_episode()
         self.history_vectors = None
         self.history_dictionaries = None
@@ -38,7 +38,7 @@ class StateTracker:
         self.action_dimension = 10      # TODO REPLACE WITH REAL VALUE
         self.kb_result_dimension = 10   # TODO  REPLACE WITH REAL VALUE
         self.turn_count = 0
-        self.kb_helper = KBHelper(movie_dictionary)
+        self.kb_helper = KBHelper(course_dictionary)
         
 
     def initialize_episode(self):

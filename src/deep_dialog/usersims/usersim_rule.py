@@ -20,10 +20,10 @@ from deep_dialog import dialog_config
 class RuleSimulator(UserSimulator):
     """ A rule-based user simulator for testing dialog policy """
     
-    def __init__(self, movie_dict=None, act_set=None, slot_set=None, start_set=None, params=None):
+    def __init__(self, course_dict=None, act_set=None, slot_set=None, start_set=None, params=None):
         """ Constructor shared by all user simulators """
         
-        self.movie_dict = movie_dict
+        self.course_dict = course_dict
         self.act_set = act_set
         self.slot_set = slot_set
         self.start_set = start_set
@@ -56,7 +56,7 @@ class RuleSimulator(UserSimulator):
         
         #self.goal =  random.choice(self.start_set)
         self.goal = self._sample_goal(self.start_set)
-        self.goal['request_slots']['ticket'] = 'UNK'
+        #self.goal['request_slots']['title'] = 'UNK'
         self.constraint_check = dialog_config.CONSTRAINT_CHECK_FAILURE
   
         """ Debug: build a fake goal mannually """
@@ -70,29 +70,29 @@ class RuleSimulator(UserSimulator):
     def _sample_action(self):
         """ randomly sample a start action based on user goal """
         
-        self.state['diaact'] = random.choice(dialog_config.start_dia_acts.keys())
+        self.state['diaact'] = random.choice(list(dialog_config.start_dia_acts.keys()))
         
         # "sample" informed slots
         if len(self.goal['inform_slots']) > 0:
-            known_slot = random.choice(self.goal['inform_slots'].keys())
+            known_slot = random.choice(list(self.goal['inform_slots'].keys()))
             self.state['inform_slots'][known_slot] = self.goal['inform_slots'][known_slot]
 
-            if 'moviename' in self.goal['inform_slots'].keys(): # 'moviename' must appear in the first user turn
-                self.state['inform_slots']['moviename'] = self.goal['inform_slots']['moviename']
+            if 'title' in self.goal['inform_slots'].keys(): # 'moviename' must appear in the first user turn
+                self.state['inform_slots']['title'] = self.goal['inform_slots']['title']
                 
             for slot in self.goal['inform_slots'].keys():
-                if known_slot == slot or slot == 'moviename': continue
+                if known_slot == slot or slot == 'title': continue
                 self.state['rest_slots'].append(slot)
         
         self.state['rest_slots'].extend(self.goal['request_slots'].keys())
         
         # "sample" a requested slot
         request_slot_set = list(self.goal['request_slots'].keys())
-        request_slot_set.remove('ticket')
+        if 'title' in request_slot_set : request_slot_set.remove('title')
         if len(request_slot_set) > 0:
             request_slot = random.choice(request_slot_set)
         else:
-            request_slot = 'ticket'
+            request_slot = 'title'
         self.state['request_slots'][request_slot] = 'UNK'
         
         if len(self.state['request_slots']) == 0:
@@ -107,7 +107,8 @@ class RuleSimulator(UserSimulator):
         sample_action['request_slots'] = self.state['request_slots']
         sample_action['turn'] = self.state['turn']
         
-        self.add_nl_to_action(sample_action)
+        # NLG ???
+        # self.add_nl_to_action(sample_action)
         return sample_action
     
     def _sample_goal(self, goal_set):
@@ -124,21 +125,21 @@ class RuleSimulator(UserSimulator):
             slot_err_prob_sample = random.random()
             if slot_err_prob_sample < self.slot_err_probability: # add noise for slot level
                 if self.slot_err_mode == 0: # replace the slot_value only
-                    if slot in self.movie_dict.keys(): user_action['inform_slots'][slot] = random.choice(self.movie_dict[slot])
+                    if slot in self.course_dict.keys(): user_action['inform_slots'][slot] = random.choice(self.course_dict[slot])
                 elif self.slot_err_mode == 1: # combined
                     slot_err_random = random.random()
                     if slot_err_random <= 0.33:
-                        if slot in self.movie_dict.keys(): user_action['inform_slots'][slot] = random.choice(self.movie_dict[slot])
+                        if slot in self.course_dict.keys(): user_action['inform_slots'][slot] = random.choice(self.course_dict[slot])
                     elif slot_err_random > 0.33 and slot_err_random <= 0.66:
                         del user_action['inform_slots'][slot]
-                        random_slot = random.choice(self.movie_dict.keys())
-                        user_action[random_slot] = random.choice(self.movie_dict[random_slot])
+                        random_slot = random.choice(self.course_dict.keys())
+                        user_action[random_slot] = random.choice(self.course_dict[random_slot])
                     else:
                         del user_action['inform_slots'][slot]
                 elif self.slot_err_mode == 2: #replace slot and its values
                     del user_action['inform_slots'][slot]
-                    random_slot = random.choice(self.movie_dict.keys())
-                    user_action[random_slot] = random.choice(self.movie_dict[random_slot])
+                    random_slot = random.choice(self.course_dict.keys())
+                    user_action[random_slot] = random.choice(self.course_dict[random_slot])
                 elif self.slot_err_mode == 3: # delete the slot
                     del user_action['inform_slots'][slot]
                     
@@ -151,17 +152,18 @@ class RuleSimulator(UserSimulator):
         
         self.goal['inform_slots'].clear()
         #self.goal['inform_slots']['city'] = 'seattle'
-        self.goal['inform_slots']['numberofpeople'] = '2'
+        #self.goal['inform_slots']['numberofpeople'] = '2'
         #self.goal['inform_slots']['theater'] = 'amc pacific place 11 theater'
         #self.goal['inform_slots']['starttime'] = '10:00 pm'
         #self.goal['inform_slots']['date'] = 'tomorrow'
-        self.goal['inform_slots']['moviename'] = 'zoology'
-        self.goal['inform_slots']['distanceconstraints'] = 'close to 95833'
+        self.goal['inform_slots']['title'] = 'Natural'
+        self.goal['inform_slots']['instructor'] = 'Prof. chen'
+        self.goal['inform_slots']['schedule_str'] = '2,3,4'
         self.goal['request_slots'].clear()
-        self.goal['request_slots']['ticket'] = 'UNK'
-        self.goal['request_slots']['theater'] = 'UNK'
-        self.goal['request_slots']['starttime'] = 'UNK'
-        self.goal['request_slots']['date'] = 'UNK'
+        #self.goal['request_slots']['ticket'] = 'UNK'
+        #self.goal['request_slots']['theater'] = 'UNK'
+        #self.goal['request_slots']['starttime'] = 'UNK'
+        self.goal['request_slots']['classroom'] = 'UNK'
         
     def next(self, system_action):
         """ Generate next User Action based on last System Action """
@@ -204,7 +206,7 @@ class RuleSimulator(UserSimulator):
         response_action['nl'] = ""
         
         # add NL to dia_act
-        self.add_nl_to_action(response_action)                       
+        #self.add_nl_to_action(response_action)                       
         return response_action, self.episode_over, self.dialog_status
     
     
@@ -230,13 +232,17 @@ class RuleSimulator(UserSimulator):
         
         self.episode_over = True
         self.dialog_status = dialog_config.SUCCESS_DIALOG
-
-        request_slot_set = copy.deepcopy(self.state['request_slots'].keys())
-        if 'ticket' in request_slot_set:
-            request_slot_set.remove('ticket')
+        
+        request_slot_set = copy.deepcopy(list(self.state['request_slots'].keys()))
+        """
+        if 'title' in request_slot_set:
+            request_slot_set.remove('title')
+        """
         rest_slot_set = copy.deepcopy(self.state['rest_slots'])
+        """
         if 'ticket' in rest_slot_set:
             rest_slot_set.remove('ticket')
+        """
 
         if len(request_slot_set) > 0 or len(rest_slot_set) > 0:
             self.dialog_status = dialog_config.FAILED_DIALOG
@@ -247,19 +253,19 @@ class RuleSimulator(UserSimulator):
             if info_slot in self.goal['inform_slots'].keys():
                 if self.state['history_slots'][info_slot] != self.goal['inform_slots'][info_slot]:
                     self.dialog_status = dialog_config.FAILED_DIALOG
-
-        if 'ticket' in system_action['inform_slots'].keys():
+        """
+        if 'title' in system_action['inform_slots'].keys():
             if system_action['inform_slots']['ticket'] == dialog_config.NO_VALUE_MATCH:
                 self.dialog_status = dialog_config.FAILED_DIALOG
-                
+        """  
         if self.constraint_check == dialog_config.CONSTRAINT_CHECK_FAILURE:
             self.dialog_status = dialog_config.FAILED_DIALOG
-    
+        
     def response_request(self, system_action):
         """ Response for Request (System Action) """
         
         if len(system_action['request_slots'].keys()) > 0:
-            slot = system_action['request_slots'].keys()[0] # only one slot
+            slot = list(system_action['request_slots'].keys())[0] # only one slot
             if slot in self.goal['inform_slots'].keys(): # request slot in user's constraints  #and slot not in self.state['request_slots'].keys():
                 self.state['inform_slots'][slot] = self.goal['inform_slots'][slot]
                 self.state['diaact'] = "inform"

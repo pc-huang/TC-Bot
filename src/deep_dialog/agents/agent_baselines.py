@@ -6,7 +6,8 @@ Created on May 25, 2016
 
 import copy, random
 from deep_dialog import dialog_config
-from agent import Agent
+#from agent import Agent
+from deep_dialog.agents.agent import Agent
 
 
 class InformAgent(Agent):
@@ -135,7 +136,7 @@ class RequestBasicsAgent(Agent):
         self.state['request_slots'] = {}
         self.state['turn'] = -1
         self.current_slot_id = 0
-        self.request_set = ['moviename', 'starttime', 'city', 'date', 'theater', 'numberofpeople']
+        self.request_set = ['title', 'instructor', 'classroom', 'schedule_str']
         self.phase = 0
 
     def state_to_action(self, state):

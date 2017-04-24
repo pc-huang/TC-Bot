@@ -1,44 +1,24 @@
-"""
-Created on May 22, 2016
-
-This should be a simple minimalist run file. It's only responsibility should be to parse the arguments (which agent, user simulator to use) and launch a dialog simulation.
-
-Rule-agent: python run.py --agt 6 --usr 1 --max_turn 40 --episodes 150 --movie_kb_path .\deep_dialog\data\movie_kb.1k.p --run_mode 2
-
-movie_kb:
-movie_kb.1k.p: 94% success rate
-movie_kb.v2.p: 36% success rate
-
-user goal files:
-first turn: user_goals_first_turn_template.v2.p
-all turns: user_goals_all_turns_template.p
-user_goals_first_turn_template.part.movie.v1.p: a subset of user goal. [Please use this one, the upper bound success rate on movie_kb.1k.json is 0.9765.]
-
-Commands:
-Rule: python run.py --agt 5 --usr 1 --max_turn 40 --episodes 150 --movie_kb_path .\deep_dialog\data\movie_kb.1k.p --goal_file_path .\deep_dialog\data\user_goals_first_turn_template.part.movie.v1.p --intent_err_prob 0.00 --slot_err_prob 0.00 --episodes 500 --act_level 1 --run_mode 1
-
-Training:
-RL: python run.py --agt 9 --usr 1 --max_turn 40 --movie_kb_path .\deep_dialog\data\movie_kb.1k.p --dqn_hidden_size 80 --experience_replay_pool_size 1000 --episodes 500 --simulation_epoch_size 100 --write_model_dir .\deep_dialog\checkpoints\rl_agent\ --run_mode 3 --act_level 0 --slot_err_prob 0.05 --intent_err_prob 0.00 --batch_size 16 --goal_file_path .\deep_dialog\data\user_goals_first_turn_template.part.movie.v1.p --warm_start 1 --warm_start_epochs 120
-
-Predict:
-RL: python run.py --agt 9 --usr 1 --max_turn 40 --movie_kb_path .\deep_dialog\data\movie_kb.1k.p --dqn_hidden_size 80 --experience_replay_pool_size 1000 --episodes 300 --simulation_epoch_size 100 --write_model_dir .\deep_dialog\checkpoints\rl_agent\ --slot_err_prob 0.00 --intent_err_prob 0.00 --batch_size 16 --goal_file_path .\deep_dialog\data\user_goals_first_turn_template.part.movie.v1.p --episodes 200 --trained_model_path .\deep_dialog\checkpoints\rl_agent\agt_9_22_30_0.37000.p --run_mode 3
-
-@author: xiul, t-zalipt
-"""
-
-
-import argparse, json, copy, os
-import cPickle as pickle
+import argparse, json, copy, os, random
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 from deep_dialog.dialog_system import DialogManager, text_to_dict
 from deep_dialog.agents import AgentCmd, InformAgent, RequestAllAgent, RandomAgent, EchoAgent, RequestBasicsAgent, AgentDQN
 from deep_dialog.usersims import RuleSimulator
-
 from deep_dialog import dialog_config
 from deep_dialog.dialog_config import *
-
 from deep_dialog.nlu import nlu
 from deep_dialog.nlg import nlg
+
+import django
+from crawler.const import base_url
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "NTUCB.settings")
+django.setup()
+
+from django.template import Context, Template
+from crawler.models import *
 
 
 """ 
@@ -47,17 +27,89 @@ This function instantiates a user_simulator, an agent, and a dialog system.
 Next, it triggers the simulator to run for the specified number of episodes.
 """
 
+def formulate(**kwargs):
+    kwlist = list(kwargs.items())
+    len_kw = len(kwlist)
+    state = [0] * (len_kw + 1)
+
+    total = 1
+    for _, l in kwlist:
+        total *= len(l)
+
+    print ('Formulating %d sentences...' % total)
+
+    while True:
+        d = {}
+        for i, v in enumerate(state[:-1]):
+            d[kwlist[i][0]] = kwlist[i][1][v]
+        yield d
+
+        state[0] += 1
+        ind = 0
+
+        while ind < len_kw and state[ind] == len(kwlist[ind][1]):
+            state[ind] = 0
+            state[ind + 1] += 1
+            ind += 1
+
+        if len_kw == ind:
+            break
 
 
 if __name__ == "__main__":
+
+    all_course = list(Course.objects.filter(semester='105-2'))
+
+    course_kb = {}
+    for i,course in enumerate(all_course):
+        course_kb[i] = {'title':course.title, 'instructor':course.instructor,'classroom':course.classroom,'schedule_str':course.schedule_str}
+
+    course_dictionary = {'title':[], 'instructor':[], 'classroom':[], 'schedule_str':[]}
+    for course in all_course:
+        course_dictionary['title'].append(course.title)
+        course_dictionary['instructor'].append(course.instructor)
+        course_dictionary['classroom'].append(course.classroom)
+        course_dictionary['schedule_str'].append(course.schedule_str)
+
+    slot_set = ['title', 'instructor', 'classroom', 'schedule_str']
+    goal = {'diaact':'request','inform_slots':{}, 'request_slots':{}}
+    all_goal_set = []
+    random.seed(a=0)
+    for i in range(1000):
+        idx = random.randint(0, len(all_course))
+        inform = list(slot_set)
+        request = inform[random.randint(0, len(slot_set)-1)]
+        inform.remove(request)
+        gen = copy.deepcopy(goal)
+        gen['request_slots'][request] = 'UNK'
+        gen['inform_slots'] = {x:course_kb[idx][x] for x in inform}
+        all_goal_set.append(gen)
+
+    """
+
+    goal_set = [{'diaact':'request','inform_slots':{'title':'自然語言處理', 'instructor':'陳信希'}, 'request_slots':{}},
+            {'diaact':'request','inform_slots':{'title':'自然語言處理', 'instructor':'陳信希'}, 'request_slots':{'classroom':'UNK'}},
+            {'diaact':'request','inform_slots':{'title':'自然語言處理', 'instructor':'陳信希'}, 'request_slots':{'schedule_str':'UNK'}},
+            {'diaact':'request','inform_slots':{'title':'自然語言處理', 'instructor':'陳信希'}, 'request_slots':{'classroom':'UNK','schedule_str':'UNK'}},
+            {'diaact':'request','inform_slots':{'schedule_str':'四2,3,4', 'instructor':'陳信希'}, 'request_slots':{}},
+            {'diaact':'request','inform_slots':{'schedule_str':'四2,3,4', 'instructor':'陳信希'}, 'request_slots':{'title':'UNK'}},
+            {'diaact':'request','inform_slots':{'schedule_str':'四2,3,4', 'instructor':'陳信希'}, 'request_slots':{'classroom':'UNK'}},
+            {'diaact':'request','inform_slots':{'schedule_str':'四2,3,4', 'instructor':'陳信希'}, 'request_slots':{'classroom':'UNK','title':'UNK'}},
+            {'diaact':'request','inform_slots':{'title':'自然語言處理', 'classroom':'資105', 'schedule_str':'四2,3,4'}, 'request_slots':{}},
+            {'diaact':'request','inform_slots':{'title':'自然語言處理', 'classroom':'資105', 'schedule_str':'四2,3,4'}, 'request_slots':{'instructor':'UNK'}},
+            {'diaact':'request','inform_slots':{'title':'自然語言處理', 'schedule_str':'四2,3,4'}, 'request_slots':{'instructor':'UNK'}},
+            ]
+
+    """
+
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dict_path', dest='dict_path', type=str, default='./deep_dialog/data/dicts.v3.p', help='path to the .json dictionary file')
-    parser.add_argument('--movie_kb_path', dest='movie_kb_path', type=str, default='./deep_dialog/data/movie_kb.1k.p', help='path to the movie kb .json file')
-    parser.add_argument('--act_set', dest='act_set', type=str, default='./deep_dialog/data/dia_acts.txt', help='path to dia act set; none for loading from labeled file')
-    parser.add_argument('--slot_set', dest='slot_set', type=str, default='./deep_dialog/data/slot_set.txt', help='path to slot set; none for loading from labeled file')
-    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./deep_dialog/data/user_goals_first_turn_template.part.movie.v1.p', help='a list of user goals')
-    parser.add_argument('--diaact_nl_pairs', dest='diaact_nl_pairs', type=str, default='./deep_dialog/data/dia_act_nl_pairs.v6.json', help='path to the pre-defined dia_act&NL pairs')
+    parser.add_argument('--dict_path', dest='dict_path', type=str, default='deep_dialog/data/dicts.v3.p', help='path to the .json dictionary file')
+    parser.add_argument('--movie_kb_path', dest='movie_kb_path', type=str, default='deep_dialog/data/movie_kb.1k.p', help='path to the movie kb .json file')
+    parser.add_argument('--act_set', dest='act_set', type=str, default='deep_dialog/data/dia_acts.txt', help='path to dia act set; none for loading from labeled file')
+    parser.add_argument('--slot_set', dest='slot_set', type=str, default='deep_dialog/data/slot_set.txt', help='path to slot set; none for loading from labeled file')
+    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='deep_dialog/data/user_goals_first_turn_template.part.movie.v1.p', help='a list of user goals')
+    parser.add_argument('--diaact_nl_pairs', dest='diaact_nl_pairs', type=str, default='deep_dialog/data/dia_act_nl_pairs.v6.json', help='path to the pre-defined dia_act&NL pairs')
 
     parser.add_argument('--max_turn', dest='max_turn', default=20, type=int, help='maximum length of each dialog (default=20, 0=no maximum length)')
     parser.add_argument('--episodes', dest='episodes', default=1, type=int, help='Total number of episodes to run (default=1)')
@@ -71,8 +123,8 @@ if __name__ == "__main__":
     parser.add_argument('--epsilon', dest='epsilon', type=float, default=0, help='Epsilon to determine stochasticity of epsilon-greedy agent policies')
     
     # load NLG & NLU model
-    parser.add_argument('--nlg_model_path', dest='nlg_model_path', type=str, default='./deep_dialog/models/nlg/lstm_tanh_relu_[1468202263.38]_2_0.610.p', help='path to model file')
-    parser.add_argument('--nlu_model_path', dest='nlu_model_path', type=str, default='./deep_dialog/models/nlu/lstm_[1468447442.91]_39_80_0.921.p', help='path to the NLU model file')
+    parser.add_argument('--nlg_model_path', dest='nlg_model_path', type=str, default='deep_dialog/models/nlg/lstm_tanh_relu_[1468202263.38]_2_0.610.p', help='path to model file')
+    parser.add_argument('--nlu_model_path', dest='nlu_model_path', type=str, default='deep_dialog/models/nlu/lstm_[1468447442.91]_39_80_0.921.p', help='path to the NLU model file')
     
     parser.add_argument('--act_level', dest='act_level', type=int, default=0, help='0 for dia_act level; 1 for NL level')
     parser.add_argument('--run_mode', dest='run_mode', type=int, default=0, help='run_mode: 0 for default NL; 1 for dia_act; 2 for both')
@@ -85,12 +137,12 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=16, help='batch size')
     parser.add_argument('--gamma', dest='gamma', type=float, default=0.9, help='gamma for DQN')
     parser.add_argument('--predict_mode', dest='predict_mode', type=bool, default=False, help='predict model for DQN')
-    parser.add_argument('--simulation_epoch_size', dest='simulation_epoch_size', type=int, default=50, help='the size of validation set')
+    parser.add_argument('--simulation_epoch_size', dest='simulation_epoch_size', type=int, default=10, help='the size of validation set')
     parser.add_argument('--warm_start', dest='warm_start', type=int, default=1, help='0: no warm start; 1: warm start for training')
     parser.add_argument('--warm_start_epochs', dest='warm_start_epochs', type=int, default=100, help='the number of epochs for warm start')
     
     parser.add_argument('--trained_model_path', dest='trained_model_path', type=str, default=None, help='the path for trained model')
-    parser.add_argument('-o', '--write_model_dir', dest='write_model_dir', type=str, default='./deep_dialog/checkpoints/', help='write model to disk') 
+    parser.add_argument('-o', '--write_model_dir', dest='write_model_dir', type=str, default='deep_dialog/checkpoints/', help='write model to disk') 
     parser.add_argument('--save_check_point', dest='save_check_point', type=int, default=10, help='number of epochs for saving model')
      
     parser.add_argument('--success_rate_threshold', dest='success_rate_threshold', type=float, default=0.3, help='the threshold for success rate')
@@ -101,8 +153,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     params = vars(args)
 
-    print 'Dialog Parameters: '
-    print json.dumps(params, indent=2)
+    print('Dialog Parameters: ')
+    print(json.dumps(params, indent=2))
 
 
 max_turn = params['max_turn']
@@ -111,11 +163,6 @@ num_episodes = params['episodes']
 agt = params['agt']
 usr = params['usr']
 
-dict_path = params['dict_path']
-goal_file_path = params['goal_file_path']
-
-# load the user goals from .p file
-all_goal_set = pickle.load(open(goal_file_path, 'rb'))
 
 # split goal set
 split_fold = params.get('split_fold', 5)
@@ -126,16 +173,16 @@ for u_goal_id, u_goal in enumerate(all_goal_set):
     goal_set['all'].append(u_goal)
 # end split goal set
 
-movie_kb_path = params['movie_kb_path']
-movie_kb = pickle.load(open(movie_kb_path, 'rb'))
+
 
 act_set = text_to_dict(params['act_set'])
 slot_set = text_to_dict(params['slot_set'])
 
 ################################################################################
-# a movie dictionary for user simulator - slot:possible values
+# a Course dictionary for user simulator - slot:possible values
 ################################################################################
-movie_dictionary = pickle.load(open(dict_path, 'rb'))
+#movie_dictionary = pickle.load(open(dict_path, 'rb'))
+#course_dictionary
 
 dialog_config.run_mode = params['run_mode']
 dialog_config.auto_suggest = params['auto_suggest']
@@ -160,19 +207,19 @@ agent_params['cmd_input_mode'] = params['cmd_input_mode']
 
 
 if agt == 0:
-    agent = AgentCmd(movie_kb, act_set, slot_set, agent_params)
+    agent = AgentCmd(course_kb, act_set, slot_set, agent_params)
 elif agt == 1:
-    agent = InformAgent(movie_kb, act_set, slot_set, agent_params)
+    agent = InformAgent(course_kb, act_set, slot_set, agent_params)
 elif agt == 2:
-    agent = RequestAllAgent(movie_kb, act_set, slot_set, agent_params)
+    agent = RequestAllAgent(course_kb, act_set, slot_set, agent_params)
 elif agt == 3:
-    agent = RandomAgent(movie_kb, act_set, slot_set, agent_params)
+    agent = RandomAgent(course_kb, act_set, slot_set, agent_params)
 elif agt == 4:
-    agent = EchoAgent(movie_kb, act_set, slot_set, agent_params)
+    agent = EchoAgent(course_kb, act_set, slot_set, agent_params)
 elif agt == 5:
-    agent = RequestBasicsAgent(movie_kb, act_set, slot_set, agent_params)
+    agent = RequestBasicsAgent(course_kb, act_set, slot_set, agent_params)
 elif agt == 9:
-    agent = AgentDQN(movie_kb, act_set, slot_set, agent_params)
+    agent = AgentDQN(course_kb, act_set, slot_set, agent_params)
     
 ################################################################################
 #    Add your agent here
@@ -193,9 +240,9 @@ usersim_params['simulator_act_level'] = params['act_level']
 usersim_params['learning_phase'] = params['learning_phase']
 
 if usr == 0:# real user
-    user_sim = RealUser(movie_dictionary, act_set, slot_set, goal_set, usersim_params)
+    user_sim = RealUser(course_dictionary, act_set, slot_set, goal_set, usersim_params)
 elif usr == 1: 
-    user_sim = RuleSimulator(movie_dictionary, act_set, slot_set, goal_set, usersim_params)
+    user_sim = RuleSimulator(course_dictionary, act_set, slot_set, goal_set, usersim_params)
 
 ################################################################################
 #    Add your user simulator here
@@ -231,7 +278,7 @@ user_sim.set_nlu_model(nlu_model)
 ################################################################################
 # Dialog Manager
 ################################################################################
-dialog_manager = DialogManager(agent, user_sim, act_set, slot_set, movie_kb)
+dialog_manager = DialogManager(agent, user_sim, act_set, slot_set, course_kb)
     
     
 ################################################################################
@@ -269,10 +316,10 @@ def save_model(path, agt, success_rate, agent, best_epoch, cur_epoch):
     checkpoint['params'] = params
     try:
         pickle.dump(checkpoint, open(filepath, "wb"))
-        print 'saved model in %s' % (filepath, )
-    except Exception, e:
-        print 'Error: Writing model fails: %s' % (filepath, )
-        print e
+        print('saved model in %s' % (filepath, ))
+    except Exception as e:
+        print('Error: Writing model fails: %s' % (filepath, ))
+        print(e)
 
 """ save performance numbers """
 def save_performance_records(path, agt, records):
@@ -280,10 +327,10 @@ def save_performance_records(path, agt, records):
     filepath = os.path.join(path, filename)
     try:
         json.dump(records, open(filepath, "wb"))
-        print 'saved model in %s' % (filepath, )
-    except Exception, e:
-        print 'Error: Writing model fails: %s' % (filepath, )
-        print e
+        print('saved model in %s' % (filepath, ))
+    except Exception as e:
+        print('Error: Writing model fails: %s' % (filepath, ))
+        print(e)
 
 """ Run N simulation Dialogues """
 def simulation_epoch(simulation_epoch_size):
@@ -292,7 +339,7 @@ def simulation_epoch(simulation_epoch_size):
     cumulative_turns = 0
     
     res = {}
-    for episode in xrange(simulation_epoch_size):
+    for episode in range(simulation_epoch_size):
         dialog_manager.initialize_episode()
         episode_over = False
         while(not episode_over):
@@ -318,7 +365,7 @@ def warm_start_simulation():
     cumulative_turns = 0
     
     res = {}
-    for episode in xrange(warm_start_epochs):
+    for episode in range(warm_start_epochs):
         dialog_manager.initialize_episode()
         episode_over = False
         while(not episode_over):
@@ -353,7 +400,7 @@ def run_episodes(count, status):
         warm_start_simulation()
         print ('warm_start finished, start RL training ...')
     
-    for episode in xrange(count):
+    for episode in range(count):
         print ("Episode: %s" % (episode))
         dialog_manager.initialize_episode()
         episode_over = False
@@ -410,3 +457,4 @@ def run_episodes(count, status):
         save_performance_records(params['write_model_dir'], agt, performance_records)
     
 run_episodes(num_episodes, status)
+

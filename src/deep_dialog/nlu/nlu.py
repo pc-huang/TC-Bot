@@ -4,12 +4,17 @@ Created on Jul 13, 2016
 @author: xiul
 '''
 
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import copy
 import numpy as np
 
-from lstm import lstm
-from bi_lstm import biLSTM
+from deep_dialog.nlu.lstm import lstm
+#from lstm import lstm
+from deep_dialog.nlu.bi_lstm import biLSTM
+#from bi_lstm import biLSTM
 
 
 class nlu:
@@ -47,7 +52,7 @@ class nlu:
     def load_nlu_model(self, model_path):
         """ load the trained NLU model """  
         
-        model_params = pickle.load(open(model_path, 'rb'))
+        model_params = pickle.load(open(model_path, 'rb'),encoding='latin1')
     
         hidden_size = model_params['model']['Wd'].shape[0]
         output_size = model_params['model']['Wd'].shape[1]

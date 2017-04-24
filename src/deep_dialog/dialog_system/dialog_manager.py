@@ -33,7 +33,7 @@ class DialogManager:
         
         if dialog_config.run_mode < 3:
             print ("New episode, user goal:")
-            print json.dumps(self.user.goal, indent=2)
+            print (json.dumps(self.user.goal, indent=2))
         self.print_function(user_action = self.user_action)
             
         self.agent.initialize_episode()
@@ -52,7 +52,8 @@ class DialogManager:
         ########################################################################
         self.state_tracker.update(agent_action=self.agent_action)
         
-        self.agent.add_nl_to_action(self.agent_action) # add NL to Agent Dia_Act
+        ### NLU ???
+        #self.agent.add_nl_to_action(self.agent_action) # add NL to Agent Dia_Act
         self.print_function(agent_action = self.agent_action['act_slot_response'])
         
         ########################################################################
@@ -108,7 +109,7 @@ class DialogManager:
                     print ("Turn %d sys: %s" % (agent_action['turn'], agent_action['nl']))
             elif dialog_config.run_mode == 1:
                 if self.agent.__class__.__name__ != 'AgentCmd':
-                    print("Turn %d sys: %s, inform_slots: %s, request slots: %s" % (agent_action['turn'], agent_action['diaact'], agent_action['inform_slots'], agent_action['request_slots']))
+                    print("Turn %d sys: %s, inform_slots: %s, request slots: %s" % (agent_action['turn'], agent_action['diaact'], agent_action['inform_slots'],  agent_action['request_slots']))
             elif dialog_config.run_mode == 2: # debug mode
                 print("Turn %d sys: %s, inform_slots: %s, request slots: %s" % (agent_action['turn'], agent_action['diaact'], agent_action['inform_slots'], agent_action['request_slots']))
                 print ("Turn %d sys: %s" % (agent_action['turn'], agent_action['nl']))
@@ -119,7 +120,7 @@ class DialogManager:
             if dialog_config.run_mode == 0:
                 print ("Turn %d usr: %s" % (user_action['turn'], user_action['nl']))
             elif dialog_config.run_mode == 1: 
-                print ("Turn %s usr: %s, inform_slots: %s, request_slots: %s" % (user_action['turn'], user_action['diaact'], user_action['inform_slots'], user_action['request_slots']))
+                print ("Turn %s usr: %s, inform_slots: %s, request_slots: %s" % (user_action['turn'], user_action['diaact'], user_action['inform_slots'],  user_action['request_slots']))
             elif dialog_config.run_mode == 2: # debug mode, show both
                 print ("Turn %d usr: %s, inform_slots: %s, request_slots: %s" % (user_action['turn'], user_action['diaact'], user_action['inform_slots'], user_action['request_slots']))
                 print ("Turn %d usr: %s" % (user_action['turn'], user_action['nl']))

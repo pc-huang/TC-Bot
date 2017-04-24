@@ -7,7 +7,10 @@ Created on Oct 17, 2016
 @author: xiul
 '''
 
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import copy, argparse, json
 import numpy as np
 
@@ -135,7 +138,7 @@ class nlg:
     def load_nlg_model(self, model_path):
         """ load the trained NLG model """  
         
-        model_params = pickle.load(open(model_path, 'rb'))
+        model_params = pickle.load(open(model_path, 'rb'), encoding='latin1')
     
         hidden_size = model_params['model']['Wd'].shape[0]
         output_size = model_params['model']['Wd'].shape[1]
@@ -183,7 +186,7 @@ class nlg:
     def load_predefine_act_nl_pairs(self, path):
         """ Load some pre-defined Dia_Act&NL Pairs from file """
         
-        self.diaact_nl_pairs = json.load(open(path, 'rb'))
+        self.diaact_nl_pairs = json.load(open(path, 'r'))
         
         for key in self.diaact_nl_pairs['dia_acts'].keys():
             for ele in self.diaact_nl_pairs['dia_acts'][key]:

@@ -6,7 +6,8 @@ An LSTM decoder - add tanh after cell before output gate
 @author: xiul
 '''
 
-from seq_seq import SeqToSeq
+from deep_dialog.nlu.seq_seq import SeqToSeq
+#from seq_seq import SeqToSeq
 from .utils import *
 
 

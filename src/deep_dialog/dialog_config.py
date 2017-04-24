@@ -4,12 +4,15 @@ Created on May 17, 2016
 @author: xiul, t-zalipt
 '''
 
-sys_request_slots = ['moviename', 'theater', 'starttime', 'date', 'numberofpeople', 'genre', 'state', 'city', 'zip', 'critic_rating', 'mpaa_rating', 'distanceconstraints', 'video_format', 'theater_chain', 'price', 'actor', 'description', 'other', 'numberofkids']
-sys_inform_slots = ['moviename', 'theater', 'starttime', 'date', 'genre', 'state', 'city', 'zip', 'critic_rating', 'mpaa_rating', 'distanceconstraints', 'video_format', 'theater_chain', 'price', 'actor', 'description', 'other', 'numberofkids', 'taskcomplete', 'ticket']
+sys_request_slots = ['title','instructor','classroom','schedule_str']
+#sys_request_slots = ['moviename', 'theater', 'starttime', 'date', 'numberofpeople', 'genre', 'state', 'city', 'zip', 'critic_rating', 'mpaa_rating', 'distanceconstraints', 'video_format', 'theater_chain', 'price', 'actor', 'description', 'other', 'numberofkids']
+sys_inform_slots = ['title','instructor','classroom','schedule_str']
+#sys_inform_slots = ['moviename', 'theater', 'starttime', 'date', 'genre', 'state', 'city', 'zip', 'critic_rating', 'mpaa_rating', 'distanceconstraints', 'video_format', 'theater_chain', 'price', 'actor', 'description', 'other', 'numberofkids', 'taskcomplete', 'ticket']
 
 start_dia_acts = {
     #'greeting':[],
-    'request':['moviename', 'starttime', 'theater', 'city', 'state', 'date', 'genre', 'ticket', 'numberofpeople']
+    #'request':['moviename', 'starttime', 'theater', 'city', 'state', 'date', 'genre', 'ticket', 'numberofpeople']
+    'request' :['title','instructor','classroom','schedule_str']
 }
 
 ################################################################################
@@ -27,9 +30,9 @@ PER_TURN_REWARD = 0
 ################################################################################
 #  Special Slot Values
 ################################################################################
-I_DO_NOT_CARE = "I do not care"
-NO_VALUE_MATCH = "NO VALUE MATCHES!!!"
-TICKET_AVAILABLE = 'Ticket Available'
+I_DO_NOT_CARE = "隨便, 都可以啦~"
+NO_VALUE_MATCH = "沒有找到相關課程"
+TICKET_AVAILABLE = '成功幫您選到課囉'
 
 ################################################################################
 #  Constraint Check

@@ -15,19 +15,23 @@ Command: python .\run.py --agt 9 --usr 1 --max_turn 40 --movie_kb_path .\deep_di
 
 
 import random, copy, json
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import numpy as np
 
 from deep_dialog import dialog_config
 
-from agent import Agent
+#from agent import Agent
+from deep_dialog.agents.agent import Agent
 from deep_dialog.qlearning import DQN
 
 
 
 class AgentDQN(Agent):
-    def __init__(self, movie_dict=None, act_set=None, slot_set=None, params=None):
-        self.movie_dict = movie_dict
+    def __init__(self, course_dict=None, act_set=None, slot_set=None, params=None):
+        self.course_dict = course_dict
         self.act_set = act_set
         self.slot_set = slot_set
         self.act_cardinality = len(act_set.keys())
@@ -68,7 +72,7 @@ class AgentDQN(Agent):
         
         self.current_slot_id = 0
         self.phase = 0
-        self.request_set = ['moviename', 'starttime', 'city', 'date', 'theater', 'numberofpeople']
+        self.request_set = ['title','instructor','classroom','schedule_str']
     
     
     def state_to_action(self, state):
@@ -203,7 +207,7 @@ class AgentDQN(Agent):
         for (i, action) in enumerate(self.feasible_actions):
             if act_slot_response == action:
                 return i
-        print act_slot_response
+        print (act_slot_response)
         raise Exception("action index not found")
         return None
     
@@ -228,8 +232,8 @@ class AgentDQN(Agent):
         
         for iter_batch in range(num_batches):
             self.cur_bellman_err = 0
-            for iter in range(len(self.experience_replay_pool)/(batch_size)):
-                batch = [random.choice(self.experience_replay_pool) for i in xrange(batch_size)]
+            for iter in range(len(self.experience_replay_pool)//(batch_size)):
+                batch = [random.choice(self.experience_replay_pool) for i in range(batch_size)]
                 batch_struct = self.dqn.singleBatch(batch, {'gamma': self.gamma}, self.clone_dqn)
                 self.cur_bellman_err += batch_struct['cost']['total_cost']
             
@@ -244,10 +248,10 @@ class AgentDQN(Agent):
         
         try:
             pickle.dump(self.experience_replay_pool, open(path, "wb"))
-            print 'saved model in %s' % (path, )
-        except Exception, e:
-            print 'Error: Writing model fails: %s' % (path, )
-            print e         
+            print ('saved model in %s' % (path, ))
+        except Exception as e:
+            print ('Error: Writing model fails: %s' % (path, ))
+            print (e)         
     
     def load_experience_replay_from_file(self, path):
         """ Load the experience replay pool from a file"""
@@ -261,5 +265,5 @@ class AgentDQN(Agent):
         trained_file = pickle.load(open(path, 'rb'))
         model = trained_file['model']
         
-        print "trained DQN Parameters:", json.dumps(trained_file['params'], indent=2)
+        print ("trained DQN Parameters:", json.dumps(trained_file['params']))
         return model

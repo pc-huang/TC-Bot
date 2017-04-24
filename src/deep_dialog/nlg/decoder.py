@@ -211,9 +211,9 @@ class decoder:
             if params['dia_slot_val'] == 2 or params['dia_slot_val'] == 3: 
                 sentence = self.post_process(sentence, ele['slotval'], ds.data['slot_dict'])
             
-            print 'test case', i
-            print 'real:', real_sentence
-            print 'pred:', sentence
+            print ('test case', i)
+            print ('real:', real_sentence)
+            print ('pred:', sentence)
     
     """ post_process to fill the slot """
     def post_process(self, pred_template, slot_val_dict, slot_dict):
